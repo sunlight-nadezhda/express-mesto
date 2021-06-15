@@ -1,0 +1,20 @@
+{
+  "name": "express-mesto",
+  "version": "1.0.0",
+  "description": "Бэкенд для проекта Место",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sunlight-nadezhda/express-mesto.git"
+  },
+  "keywords": [],
+  "author": "Nadezhda Malokhatko",
+  "license": "",
+  "bugs": {
+    "url": "https://github.com/sunlight-nadezhda/express-mesto/issues"
+  },
+  "homepage": "https://github.com/sunlight-nadezhda/express-mesto#readme"
+}
