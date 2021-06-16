@@ -1,39 +1,41 @@
-const User = require("../models/user");
+const User = require('../models/user');
+
+const catchErrUser = (err) => {
+  if (err.name === 'CastError') {
+    const ERROR_CODE = 400;
+    return {
+      code: ERROR_CODE,
+      message: 'cardID пользователя не валиден',
+    };
+  }
+  return {
+    code: 500,
+    message: err.message,
+  };
+};
 
 // Возвращает всех пользователей
 module.exports.getUsers = (req, res) => {
   User.find({})
-    .then((users) => {
-      const data = [];
-      users.forEach((user) => {
-        const { name, about, avatar, _id } = user;
-        data.push({ name, about, avatar, _id });
-      });
-
-      return res.send(data);
-    })
+    .then((users) => res.send(users))
     .catch((err) => res.status(500).send({ message: err.message }));
 };
 
 // Возвращает пользователя по _id
 module.exports.getUserById = (req, res) => {
-  const userId = req.params.userId;
+  const { userId } = req.params;
 
   User.findById(userId)
     .then((user) => {
-      const { name, about, avatar, _id } = user;
-      return res.send({ name, about, avatar, _id });
+      if (!user) {
+        const ERROR_CODE = 404;
+        return res.status(ERROR_CODE).send({ message: 'Запрашиваемый пользователь не найден' });
+      }
+      return res.send(user);
     })
     .catch((err) => {
-      const ERROR_CODE = 404;
-
-      if (err.name === "CastError") {
-        return res
-          .status(ERROR_CODE)
-          .send({ message: "Запрашиваемый пользователь не найден" });
-      }
-
-      return res.status(500).send({ message: err.message });
+      const { code, message } = catchErrUser(err);
+      return res.status(code).send({ message });
     });
 };
 
@@ -42,21 +44,8 @@ module.exports.createUser = (req, res) => {
   const { name, about, avatar } = req.body;
 
   User.create({ name, about, avatar })
-    .then((user) => {
-      const { name, about, avatar, _id } = user;
-      return res.send({ name, about, avatar, _id });
-    })
-    .catch((err) => {
-      const ERROR_CODE = 400;
-
-      if (err.name === "ValidationError") {
-        return res
-          .status(ERROR_CODE)
-          .send({ message: "Проверьте введенные данные" });
-      }
-
-      return res.status(500).send({ message: err.message });
-    });
+    .then((user) => res.send(user))
+    .catch((err) => res.send({ message: err.name }));
 };
 
 // Обновляет профиль
@@ -69,21 +58,14 @@ module.exports.updateProfile = (req, res) => {
       new: true,
       runValidators: true,
       upsert: true,
-    }
+    },
   )
-    .then((user) => {
-      const { name, about, avatar, _id } = user;
-      return res.send({ name, about, avatar, _id });
-    })
+    .then((user) => res.send(user))
     .catch((err) => {
-      const ERROR_CODE = 400;
-
-      if (err.name === "ValidationError") {
-        return res
-          .status(ERROR_CODE)
-          .send({ message: "Проверьте введенные данные" });
+      if (err.name === 'CastError') {
+        const ERROR_CODE = 400;
+        return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
       }
-
       return res.status(500).send({ message: err.message });
     });
 };
@@ -98,21 +80,8 @@ module.exports.updateAvatar = (req, res) => {
       new: true,
       runValidators: true,
       upsert: true,
-    }
+    },
   )
-    .then((user) => {
-      const { name, about, avatar, _id } = user;
-      return res.send({ name, about, avatar, _id });
-    })
-    .catch((err) => {
-      const ERROR_CODE = 400;
-
-      if (err.name === "ValidationError") {
-        return res
-          .status(ERROR_CODE)
-          .send({ message: "Проверьте введенные данные" });
-      }
-
-      return res.status(500).send({ message: err.message });
-    });
+    .then((user) => res.send(user))
+    .catch((err) => res.send({ message: err.name }));
 };
