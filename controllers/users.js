@@ -45,7 +45,13 @@ module.exports.createUser = (req, res) => {
 
   User.create({ name, about, avatar })
     .then((user) => res.send(user))
-    .catch((err) => res.send({ message: err.name }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        const ERROR_CODE = 400;
+        return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
+      }
+      return res.status(500).send({ message: err.message });
+    });
 };
 
 // Обновляет профиль
@@ -62,7 +68,7 @@ module.exports.updateProfile = (req, res) => {
   )
     .then((user) => res.send(user))
     .catch((err) => {
-      if (err.name === 'CastError') {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         const ERROR_CODE = 400;
         return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
       }
@@ -73,15 +79,46 @@ module.exports.updateProfile = (req, res) => {
 // Обновляет аватар
 module.exports.updateAvatar = (req, res) => {
   const { avatar } = req.body;
-  User.findByIdAndUpdate(
-    req.user._id,
+  User.findOneAndUpdate(
+    { avatar },
     { avatar },
     {
       new: true,
       runValidators: true,
-      upsert: true,
     },
   )
-    .then((user) => res.send(user))
-    .catch((err) => res.send({ message: err.name }));
+    .then((user) => {
+      if (!user) {
+        const ERROR_CODE = 404;
+        return res.status(ERROR_CODE).send({ message: 'Запрашиваемый пользователь не найден' });
+      }
+      return res.send(user);
+    })
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        const ERROR_CODE = 400;
+        return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
+      }
+      return res.status(500).send({ message: err.message });
+    });
 };
+// module.exports.updateAvatar = (req, res) => {
+//   const { avatar } = req.body;
+//   User.findByIdAndUpdate(
+//     req.user._id,
+//     { avatar },
+//     {
+//       new: true,
+//       runValidators: true,
+//       upsert: true,
+//     },
+//   )
+//     .then((user) => res.send(user))
+//     .catch((err) => {
+//       if (err.name === 'ValidationError') {
+//         const ERROR_CODE = 400;
+//         return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
+//       }
+//       return res.status(500).send({ message: err.message });
+//     });
+// };
