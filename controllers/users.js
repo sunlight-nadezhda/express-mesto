@@ -63,10 +63,15 @@ module.exports.updateProfile = (req, res) => {
     {
       new: true,
       runValidators: true,
-      upsert: true,
     },
   )
-    .then((user) => res.send(user))
+    .then((user) => {
+      if (!user) {
+        const ERROR_CODE = 404;
+        return res.status(ERROR_CODE).send({ message: 'Запрашиваемый пользователь не найден' });
+      }
+      return res.send(user);
+    })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
         const ERROR_CODE = 400;
@@ -79,8 +84,8 @@ module.exports.updateProfile = (req, res) => {
 // Обновляет аватар
 module.exports.updateAvatar = (req, res) => {
   const { avatar } = req.body;
-  User.findOneAndUpdate(
-    { avatar },
+  User.findByIdAndUpdate(
+    req.user._id,
     { avatar },
     {
       new: true,
@@ -102,23 +107,3 @@ module.exports.updateAvatar = (req, res) => {
       return res.status(500).send({ message: err.message });
     });
 };
-// module.exports.updateAvatar = (req, res) => {
-//   const { avatar } = req.body;
-//   User.findByIdAndUpdate(
-//     req.user._id,
-//     { avatar },
-//     {
-//       new: true,
-//       runValidators: true,
-//       upsert: true,
-//     },
-//   )
-//     .then((user) => res.send(user))
-//     .catch((err) => {
-//       if (err.name === 'ValidationError') {
-//         const ERROR_CODE = 400;
-//         return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
-//       }
-//       return res.status(500).send({ message: err.message });
-//     });
-// };
