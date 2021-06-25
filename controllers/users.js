@@ -156,7 +156,14 @@ module.exports.login = (req, res) => {
             'some-secret-key',
             { expiresIn: '7d' },
           );
-          return res.send({ token });
+
+          return res
+            .cookie('jwt', token, {
+              maxAge: 3600000,
+              httpOnly: true,
+              sameSite: true,
+            })
+            .end();
         });
     })
     .catch((err) => {
