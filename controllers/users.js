@@ -51,7 +51,12 @@ module.exports.createUser = (req, res) => {
     password,
   } = req.body;
 
-  bcrypt.hash(password, 10)
+  if (password.trim().length < 8) {
+    const ERROR_CODE = 400;
+    return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
+  }
+
+  return bcrypt.hash(password, 10)
     .then((hash) => User.create({
       name,
       about,
