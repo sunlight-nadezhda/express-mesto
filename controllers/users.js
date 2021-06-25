@@ -51,7 +51,7 @@ module.exports.createUser = (req, res) => {
     password,
   } = req.body;
 
-  if (password.trim().length < 8) {
+  if (password.trim().length < 8 || /\s/.test(password.trim())) {
     const ERROR_CODE = 400;
     return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
   }
