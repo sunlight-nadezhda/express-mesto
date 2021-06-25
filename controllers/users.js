@@ -65,6 +65,10 @@ module.exports.createUser = (req, res) => {
         const ERROR_CODE = 400;
         return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
       }
+      if (err.name === 'MongoError') {
+        const ERROR_CODE = 400;
+        return res.status(ERROR_CODE).send({ message: 'Введенный email уже занят' });
+      }
       return res.status(500).send({ message: err.message });
     });
 };
