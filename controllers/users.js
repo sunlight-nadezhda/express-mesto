@@ -137,36 +137,24 @@ module.exports.updateAvatar = (req, res) => {
 module.exports.login = (req, res) => {
   const { email, password } = req.body;
 
-  User.findOne({ email })
+  return User.findUserByCredentials(email, password)
     .then((user) => {
-      if (!user) {
-        return Promise.reject(new Error('Неправильные почта или пароль'));
-      }
+      // аутентификация успешна
+      const token = jwt.sign(
+        { _id: user._id },
+        'some-secret-key',
+        { expiresIn: '7d' },
+      );
 
-      return bcrypt.compare(password, user.password)
-        .then((matched) => {
-          if (!matched) {
-            // хеши не совпали — отклоняем промис
-            return Promise.reject(new Error('Неправильные почта или пароль'));
-          }
-
-          // аутентификация успешна
-          const token = jwt.sign(
-            { _id: user._id },
-            'some-secret-key',
-            { expiresIn: '7d' },
-          );
-
-          return res
-            .cookie('jwt', token, {
-              maxAge: 3600000,
-              httpOnly: true,
-              sameSite: true,
-            })
-            .end();
-        });
+      return res
+        .cookie('jwt', token, {
+          maxAge: 3600000,
+          httpOnly: true,
+        })
+        .end();
     })
     .catch((err) => {
+      // ошибка аутентификации
       res
         .status(401)
         .send({ message: err.message });

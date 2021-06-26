@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 
 const {
   createUser,
@@ -10,6 +11,12 @@ const {
 const { PORT = 3000 } = process.env;
 
 const app = express();
+
+app.use(cookieParser());
+
+app.get('/posts', (req, res) => {
+  console.log(req.cookies.jwt); // достаём токен
+});
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
