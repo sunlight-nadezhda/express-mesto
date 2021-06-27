@@ -7,7 +7,11 @@ module.exports = (req, res, next) => {
   let token;
   if (req.cookies.jwt) {
     token = req.cookies.jwt;
-  } else if (!authorization || !authorization.startsWith('Bearer ')) {
+  } else if (!authorization) {
+    return res
+      .status(403)
+      .send({ message: 'Не достаточно прав' });
+  } else if (!authorization.startsWith('Bearer ')) {
     return res
       .status(401)
       .send({ message: 'Необходима авторизация' });

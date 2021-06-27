@@ -24,14 +24,6 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useUnifiedTopology: true,
 });
 
-app.use((req, res, next) => {
-  req.user = {
-    _id: '60c8806dff97560ba8b45023',
-  };
-
-  next();
-});
-
 app.post('/signin', login);
 app.post('/signup', createUser);
 
@@ -41,6 +33,8 @@ app.use(auth);
 app.use('/users', require('./routes/users'));
 app.use('/cards', require('./routes/cards'));
 
-app.all('*', (req, res) => res.status(404).send({ message: 'Запрашиваемый ресурс не найден' }));
+app.all('*', (req, res) => res
+  .status(404)
+  .send({ message: 'Запрашиваемый ресурс не найден' }));
 
 app.listen(PORT);

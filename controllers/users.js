@@ -8,7 +8,7 @@ const catchErrUser = (err) => {
     const ERROR_CODE = 400;
     return {
       code: ERROR_CODE,
-      message: 'cardID пользователя не валиден',
+      message: 'userID пользователя не валиден',
     };
   }
   return {
@@ -158,5 +158,23 @@ module.exports.login = (req, res) => {
       res
         .status(401)
         .send({ message: err.message });
+    });
+};
+
+// Получает информацию об авторизованном пользователе
+module.exports.getUserInfo = (req, res) => {
+  const userId = req.user._id;
+
+  User.findById(userId)
+    .then((user) => {
+      if (!user) {
+        const ERROR_CODE = 404;
+        return res.status(ERROR_CODE).send({ message: 'Запрашиваемый пользователь не найден' });
+      }
+      return res.send(user);
+    })
+    .catch((err) => {
+      const { code, message } = catchErrUser(err);
+      return res.status(code).send({ message });
     });
 };
