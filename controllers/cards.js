@@ -25,9 +25,9 @@ module.exports.getCards = (req, res) => {
 
 // Создаёт карточку
 module.exports.createCard = (req, res) => {
-  const { _id } = req.user;
+  const userId = req.user._id;
   const { name, link } = req.body;
-  Card.create({ name, link, owner: _id })
+  Card.create({ name, link, owner: userId })
     .then((card) => res.send(card))
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -40,14 +40,22 @@ module.exports.createCard = (req, res) => {
 
 // Удаляет карточку по идентификатору
 module.exports.deleteCardById = (req, res) => {
-  Card.findByIdAndRemove(req.params.cardId)
-    .populate(['owner', 'likes'])
+  const userId = req.user._id;
+  const { cardId } = req.params;
+
+  Card.findById(cardId)
     .then((card) => {
       if (!card) {
         const ERROR_CODE = 404;
         return res.status(ERROR_CODE).send({ message: 'Запрашиваемая карточка не найдена' });
       }
-      return res.send(card);
+      if (!card.owner._id.equals(userId)) {
+        const ERROR_CODE = 403;
+        return res.status(ERROR_CODE).send({ message: 'Не достаточно прав' });
+      }
+      return Card.findByIdAndRemove(cardId)
+        .populate(['owner', 'likes'])
+        .then((deletedCard) => res.send(deletedCard));
     })
     .catch((err) => {
       const { code, message } = catchErrCard(err);
