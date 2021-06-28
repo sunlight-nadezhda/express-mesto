@@ -2,48 +2,38 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
-
-const catchErrUser = (err) => {
-  if (err.name === 'CastError') {
-    const ERROR_CODE = 400;
-    return {
-      code: ERROR_CODE,
-      message: 'userID пользователя не валиден',
-    };
-  }
-  return {
-    code: 500,
-    message: err.message,
-  };
-};
+const NotFoundError = require('../errors/not-found-err');
+const NoValidateError = require('../errors/no-validate-err');
 
 // Возвращает всех пользователей
-module.exports.getUsers = (req, res) => {
+module.exports.getUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.send(users))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(next);
 };
 
 // Возвращает пользователя по _id
-module.exports.getUserById = (req, res) => {
+module.exports.getUserById = (req, res, next) => {
   const { userId } = req.params;
 
   User.findById(userId)
     .then((user) => {
       if (!user) {
-        const ERROR_CODE = 404;
-        return res.status(ERROR_CODE).send({ message: 'Запрашиваемый пользователь не найден' });
+        throw new NotFoundError('Запрашиваемый пользователь не найден');
       }
       return res.send(user);
     })
     .catch((err) => {
-      const { code, message } = catchErrUser(err);
-      return res.status(code).send({ message });
-    });
+      if (err.name === 'CastError') {
+        throw new NotFoundError(400, 'userID пользователя не валиден');
+      }
+      throw err;
+    })
+    .catch(next);
 };
 
 // Создаёт пользователя
-module.exports.createUser = (req, res) => {
+module.exports.createUser = (req, res, next) => {
   const {
     name,
     about,
@@ -53,8 +43,7 @@ module.exports.createUser = (req, res) => {
   } = req.body;
 
   if (password.trim().length < 8 || /\s/.test(password.trim())) {
-    const ERROR_CODE = 400;
-    return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
+    throw new NoValidateError('Проверьте введенные данные');
   }
 
   return bcrypt.hash(password, 10)
@@ -68,19 +57,19 @@ module.exports.createUser = (req, res) => {
     .then((user) => res.send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        const ERROR_CODE = 400;
-        return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
+        throw new NoValidateError('Проверьте введенные данные');
       }
-      if (err.name === 'MongoError') {
-        const ERROR_CODE = 400;
+      if (err.name === 'MongoError' && err.code === 11000) {
+        const ERROR_CODE = 409;
         return res.status(ERROR_CODE).send({ message: 'Введенный email уже занят' });
       }
-      return res.status(500).send({ message: err.message });
-    });
+      throw err;
+    })
+    .catch(next);
 };
 
 // Обновляет профиль
-module.exports.updateProfile = (req, res) => {
+module.exports.updateProfile = (req, res, next) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
@@ -92,22 +81,21 @@ module.exports.updateProfile = (req, res) => {
   )
     .then((user) => {
       if (!user) {
-        const ERROR_CODE = 404;
-        return res.status(ERROR_CODE).send({ message: 'Запрашиваемый пользователь не найден' });
+        throw new NotFoundError('Запрашиваемый пользователь не найден');
       }
       return res.send(user);
     })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        const ERROR_CODE = 400;
-        return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
+        throw new NoValidateError('Проверьте введенные данные');
       }
-      return res.status(500).send({ message: err.message });
-    });
+      throw err;
+    })
+    .catch(next);
 };
 
 // Обновляет аватар
-module.exports.updateAvatar = (req, res) => {
+module.exports.updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
@@ -119,22 +107,21 @@ module.exports.updateAvatar = (req, res) => {
   )
     .then((user) => {
       if (!user) {
-        const ERROR_CODE = 404;
-        return res.status(ERROR_CODE).send({ message: 'Запрашиваемый пользователь не найден' });
+        throw new NotFoundError('Запрашиваемый пользователь не найден');
       }
       return res.send(user);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        const ERROR_CODE = 400;
-        return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
+        throw new NoValidateError('Проверьте введенные данные');
       }
-      return res.status(500).send({ message: err.message });
-    });
+      throw err;
+    })
+    .catch(next);
 };
 
 // Аутентификация пользователя
-module.exports.login = (req, res) => {
+module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
@@ -153,28 +140,25 @@ module.exports.login = (req, res) => {
         })
         .end();
     })
-    .catch((err) => {
-      // ошибка аутентификации
-      res
-        .status(401)
-        .send({ message: err.message });
-    });
+    .catch(next);
 };
 
 // Получает информацию об авторизованном пользователе
-module.exports.getUserInfo = (req, res) => {
+module.exports.getUserInfo = (req, res, next) => {
   const userId = req.user._id;
 
   User.findById(userId)
     .then((user) => {
       if (!user) {
-        const ERROR_CODE = 404;
-        return res.status(ERROR_CODE).send({ message: 'Запрашиваемый пользователь не найден' });
+        throw new NotFoundError('Запрашиваемый пользователь не найден');
       }
       return res.send(user);
     })
     .catch((err) => {
-      const { code, message } = catchErrUser(err);
-      return res.status(code).send({ message });
-    });
+      if (err.name === 'CastError') {
+        throw new NoValidateError('userID пользователя не валиден');
+      }
+      throw err;
+    })
+    .catch(next);
 };

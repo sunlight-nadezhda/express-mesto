@@ -1,53 +1,39 @@
-// const mongoose = require('mongoose');
 const Card = require('../models/card');
-
-const catchErrCard = (err) => {
-  if (err.name === 'CastError') {
-    const ERROR_CODE = 400;
-    return {
-      code: ERROR_CODE,
-      message: 'cardID карточки не валиден',
-    };
-  }
-  return {
-    code: 500,
-    message: err.message,
-  };
-};
+const NotFoundError = require('../errors/not-found-err');
+const NoValidateError = require('../errors/no-validate-err');
 
 // Возвращает все карточки
-module.exports.getCards = (req, res) => {
+module.exports.getCards = (req, res, next) => {
   Card.find({})
     .populate(['owner', 'likes'])
     .then((cards) => res.send(cards))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(next);
 };
 
 // Создаёт карточку
-module.exports.createCard = (req, res) => {
+module.exports.createCard = (req, res, next) => {
   const userId = req.user._id;
   const { name, link } = req.body;
   Card.create({ name, link, owner: userId })
     .then((card) => res.send(card))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        const ERROR_CODE = 400;
-        return res.status(ERROR_CODE).send({ message: 'Проверьте введенные данные' });
+        throw new NoValidateError('Проверьте введенные данные');
       }
-      return res.send({ message: err.message });
-    });
+      throw err;
+    })
+    .catch(next);
 };
 
 // Удаляет карточку по идентификатору
-module.exports.deleteCardById = (req, res) => {
+module.exports.deleteCardById = (req, res, next) => {
   const userId = req.user._id;
   const { cardId } = req.params;
 
   Card.findById(cardId)
     .then((card) => {
       if (!card) {
-        const ERROR_CODE = 404;
-        return res.status(ERROR_CODE).send({ message: 'Запрашиваемая карточка не найдена' });
+        throw new NotFoundError('Запрашиваемая карточка не найдена');
       }
       if (!card.owner._id.equals(userId)) {
         const ERROR_CODE = 403;
@@ -58,13 +44,16 @@ module.exports.deleteCardById = (req, res) => {
         .then((deletedCard) => res.send(deletedCard));
     })
     .catch((err) => {
-      const { code, message } = catchErrCard(err);
-      return res.status(code).send({ message });
-    });
+      if (err.name === 'CastError') {
+        throw new NoValidateError('cardID карточки не валиден');
+      }
+      throw err;
+    })
+    .catch(next);
 };
 
 // Поставить лайк карточке
-module.exports.likeCard = (req, res) => {
+module.exports.likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } }, // добавить _id в массив, если его там нет
@@ -73,19 +62,21 @@ module.exports.likeCard = (req, res) => {
     .populate(['owner', 'likes'])
     .then((card) => {
       if (!card) {
-        const ERROR_CODE = 404;
-        return res.status(ERROR_CODE).send({ message: 'Запрашиваемая карточка не найдена' });
+        throw new NotFoundError('Запрашиваемая карточка не найдена');
       }
       return res.send(card);
     })
     .catch((err) => {
-      const { code, message } = catchErrCard(err);
-      return res.status(code).send({ message });
-    });
+      if (err.name === 'CastError') {
+        throw new NoValidateError('cardID карточки не валиден');
+      }
+      throw err;
+    })
+    .catch(next);
 };
 
 // Убрать лайк с карточки
-module.exports.dislikeCard = (req, res) => {
+module.exports.dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } }, // убрать _id из массива
@@ -94,13 +85,15 @@ module.exports.dislikeCard = (req, res) => {
     .populate(['owner', 'likes'])
     .then((card) => {
       if (!card) {
-        const ERROR_CODE = 404;
-        return res.status(ERROR_CODE).send({ message: 'Запрашиваемая карточка не найдена' });
+        throw new NotFoundError('Запрашиваемая карточка не найдена');
       }
       return res.send(card);
     })
     .catch((err) => {
-      const { code, message } = catchErrCard(err);
-      return res.status(code).send({ message });
-    });
+      if (err.name === 'CastError') {
+        throw new NoValidateError('cardID карточки не валиден');
+      }
+      throw err;
+    })
+    .catch(next);
 };
