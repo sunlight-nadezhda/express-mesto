@@ -8,64 +8,81 @@ const NoValidateError = require('../errors/no-validate-err');
 const { NODE_ENV, JWT_SECRET } = process.env;
 
 // Возвращает всех пользователей
-module.exports.getUsers = (req, res, next) => {
-  User.find({})
-    .then((users) => res.send(users))
-    .catch(next);
+module.exports.getUsers = async (req, res, next) => {
+  let users;
+  try {
+    users = await User.find({});
+  } catch (err) {
+    next(err);
+  }
+
+  try {
+    res.send(users);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Возвращает пользователя по _id
-module.exports.getUserById = (req, res, next) => {
-  const { userId } = req.params;
-
-  User.findById(userId)
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('Запрашиваемый пользователь не найден');
-      }
-      return res.send(user);
-    })
-    .catch((err) => {
+module.exports.getUserById = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    let user;
+    try {
+      user = await User.findById(userId);
+    } catch (err) {
       if (err.name === 'CastError') {
-        throw new NotFoundError(400, 'userID пользователя не валиден');
+        throw new NoValidateError('userID пользователя не валиден');
       }
       throw err;
-    })
-    .catch(next);
+    }
+
+    if (!user) {
+      throw new NotFoundError('Запрашиваемый пользователь не найден');
+    }
+
+    try {
+      res.send(user);
+    } catch (err) {
+      next(err);
+    }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Создаёт пользователя
-module.exports.createUser = (req, res, next) => {
-  const {
-    name,
-    about,
-    avatar,
-    email,
-    password,
-  } = req.body;
-
-  if (password.trim().length < 8 || /\s/.test(password.trim())) {
-    throw new NoValidateError('Проверьте введенные данные');
-  }
-
-  return bcrypt.hash(password, 10)
-    .then((hash) => User.create({
+module.exports.createUser = async (req, res, next) => {
+  try {
+    const {
       name,
       about,
       avatar,
       email,
-      password: hash,
-    }))
-    .then((user) => {
-      res.send({
-        _id: user._id,
-        name: user.name,
-        about: user.about,
-        avatar: user.avatar,
-        email: user.email,
+      password,
+    } = req.body;
+
+    if (password.trim().length < 8 || /\s/.test(password.trim())) {
+      throw new NoValidateError('Проверьте введенные данные');
+    }
+
+    let hash;
+    try {
+      hash = await bcrypt.hash(password, 10);
+    } catch (err) {
+      next(err);
+    }
+
+    let user;
+    try {
+      user = await User.create({
+        name,
+        about,
+        avatar,
+        email,
+        password: hash,
       });
-    })
-    .catch((err) => {
+    } catch (err) {
       if (err.name === 'ValidationError') {
         throw new NoValidateError('Проверьте введенные данные');
       }
@@ -74,101 +91,148 @@ module.exports.createUser = (req, res, next) => {
         return res.status(ERROR_CODE).send({ message: 'Введенный email уже занят' });
       }
       throw err;
-    })
-    .catch(next);
+    }
+
+    try {
+      res.send({
+        _id: user._id,
+        name: user.name,
+        about: user.about,
+        avatar: user.avatar,
+        email: user.email,
+      });
+    } catch (err) {
+      next(err);
+    }
+  } catch (err) {
+    next(err);
+  }
+  return undefined;
 };
 
 // Обновляет профиль
-module.exports.updateProfile = (req, res, next) => {
-  const { name, about } = req.body;
-  User.findByIdAndUpdate(
-    req.user._id,
-    { name, about },
-    {
-      new: true,
-      runValidators: true,
-    },
-  )
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('Запрашиваемый пользователь не найден');
-      }
-      return res.send(user);
-    })
-    .catch((err) => {
+module.exports.updateProfile = async (req, res, next) => {
+  try {
+    const { name, about } = req.body;
+    let user;
+    try {
+      user = await User.findByIdAndUpdate(
+        req.user._id,
+        { name, about },
+        {
+          new: true,
+          runValidators: true,
+        },
+      );
+    } catch (err) {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
         throw new NoValidateError('Проверьте введенные данные');
       }
       throw err;
-    })
-    .catch(next);
+    }
+
+    if (!user) {
+      throw new NotFoundError('Запрашиваемый пользователь не найден');
+    }
+
+    try {
+      res.send(user);
+    } catch (err) {
+      next(err);
+    }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Обновляет аватар
-module.exports.updateAvatar = (req, res, next) => {
-  const { avatar } = req.body;
-  User.findByIdAndUpdate(
-    req.user._id,
-    { avatar },
-    {
-      new: true,
-      runValidators: true,
-    },
-  )
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('Запрашиваемый пользователь не найден');
-      }
-      return res.send(user);
-    })
-    .catch((err) => {
+module.exports.updateAvatar = async (req, res, next) => {
+  try {
+    const { avatar } = req.body;
+    let user;
+    try {
+      user = await User.findByIdAndUpdate(
+        req.user._id,
+        { avatar },
+        {
+          new: true,
+          runValidators: true,
+        },
+      );
+    } catch (err) {
       if (err.name === 'ValidationError') {
         throw new NoValidateError('Проверьте введенные данные');
       }
       throw err;
-    })
-    .catch(next);
+    }
+
+    if (!user) {
+      throw new NotFoundError('Запрашиваемый пользователь не найден');
+    }
+
+    try {
+      res.send(user);
+    } catch (err) {
+      next(err);
+    }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Аутентификация пользователя
-module.exports.login = (req, res, next) => {
+module.exports.login = async (req, res, next) => {
   const { email, password } = req.body;
+  let user;
+  try {
+    user = await User.findUserByCredentials(email, password);
+  } catch (err) {
+    next(err);
+  }
 
-  return User.findUserByCredentials(email, password)
-    .then((user) => {
-      // аутентификация успешна
-      const token = jwt.sign(
-        { _id: user._id },
-        NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
-        { expiresIn: '7d' },
-      );
+  // аутентификация успешна
+  const token = jwt.sign(
+    { _id: user._id },
+    NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
+    { expiresIn: '7d' },
+  );
 
-      return res
-        .cookie('jwt', token, {
-          maxAge: 3600000,
-          httpOnly: true,
-        })
-        .end();
-    })
-    .catch(next);
+  try {
+    res
+      .cookie('jwt', token, {
+        maxAge: 3600000,
+        httpOnly: true,
+      })
+      .end();
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Получает информацию об авторизованном пользователе
-module.exports.getUserInfo = (req, res, next) => {
-  const userId = req.user._id;
-
-  User.findById(userId)
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('Запрашиваемый пользователь не найден');
-      }
-      return res.send(user);
-    })
-    .catch((err) => {
+module.exports.getUserInfo = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    let user;
+    try {
+      user = await User.findById(userId);
+    } catch (err) {
       if (err.name === 'CastError') {
         throw new NoValidateError('userID пользователя не валиден');
       }
       throw err;
-    })
-    .catch(next);
+    }
+
+    if (!user) {
+      throw new NotFoundError('Запрашиваемый пользователь не найден');
+    }
+
+    try {
+      res.send(user);
+    } catch (err) {
+      next(err);
+    }
+  } catch (err) {
+    next(err);
+  }
 };
