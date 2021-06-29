@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken');
 
 const WrongAuthError = require('../errors/wrong-auth-err');
 
+const { NODE_ENV, JWT_SECRET } = process.env;
+
 module.exports = (req, res, next) => {
   // достаём авторизационный заголовок
   const { authorization } = req.headers;
@@ -10,9 +12,13 @@ module.exports = (req, res, next) => {
   if (req.cookies.jwt) {
     token = req.cookies.jwt;
   } else if (!authorization) {
-    return res
-      .status(403)
-      .send({ message: 'Не достаточно прав' });
+    try {
+      res
+        .status(403)
+        .send({ message: 'Не достаточно прав' });
+    } catch (err) {
+      next(err);
+    }
   } else if (!authorization.startsWith('Bearer ')) {
     throw new WrongAuthError('Необходима авторизация');
   } else {
@@ -22,17 +28,15 @@ module.exports = (req, res, next) => {
   let payload;
 
   try {
-    payload = jwt.verify(token, 'some-secret-key');
+    payload = jwt.verify(
+      token,
+      NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
+    );
   } catch (err) {
-    return res
-      .status(401)
-      .send({ message: 'Необходима авторизация' });
+    throw new WrongAuthError('Необходима авторизация');
   }
 
   req.user = payload; // записываем пейлоуд в объект запроса
-  // req.user = { _id: '60d8cab5277c3c37e873f018' };
-  // req.user = { _id: '123' };
 
   next();
-  return undefined;
 };
