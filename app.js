@@ -12,6 +12,7 @@ const {
 
 const auth = require('./middlewares/auth');
 const validation = require('./middlewares/validation');
+const { requestLogger, errorLogger } = require('./middlewares/logger');
 
 const { PORT, DB_URL, DB_SETTINGS } = process.env;
 
@@ -21,6 +22,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 mongoose.connect(DB_URL, JSON.parse(DB_SETTINGS));
+
+app.use(requestLogger); // подключаем логгер запросов
 
 app.post('/signin',
   validation('body', ['email', 'password']),
@@ -39,6 +42,8 @@ app.use('/cards', require('./routes/cards'));
 app.all('*', (req, res) => res
   .status(404)
   .send({ message: 'Запрашиваемый ресурс не найден' }));
+
+app.use(errorLogger); // подключаем логгер ошибок
 
 app.use(errors()); // обработчик ошибок celebrate
 
