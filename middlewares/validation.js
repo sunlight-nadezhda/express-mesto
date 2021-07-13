@@ -1,7 +1,5 @@
 const { celebrate, Joi } = require('celebrate');
 
-const { AVATAR_PATTERN } = process.env;
-
 module.exports = (element, items) => {
   const elementObject = {};
   const keysObject = {};
@@ -13,7 +11,7 @@ module.exports = (element, items) => {
         keysObject[item] = Joi.string().min(2).max(30);
         break;
       case 'avatar':
-        keysObject[item] = Joi.string().uri().pattern(new RegExp(AVATAR_PATTERN));
+        keysObject[item] = Joi.string().uri().pattern(/^ht{2}ps?:(\/){2}(w{3}.)?[\w\-.~:\/?#[\]@!$&'()*+,;=]+/);
         break;
       case 'email':
         keysObject[item] = Joi.string().required().email();

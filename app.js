@@ -14,14 +14,17 @@ const auth = require('./middlewares/auth');
 const validation = require('./middlewares/validation');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 
-const { PORT, DB_URL, DB_SETTINGS } = process.env;
-
 const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-mongoose.connect(DB_URL, JSON.parse(DB_SETTINGS));
+mongoose.connect('mongodb://localhost:27017/mestodb', {
+  useNewUrlParser: true,
+  useCreateIndex: true,
+  useFindAndModify: false,
+  useUnifiedTopology: true,
+});
 
 app.use(requestLogger); // подключаем логгер запросов
 
@@ -62,4 +65,4 @@ app.use((err, req, res, next) => {
   next();
 });
 
-app.listen(PORT);
+app.listen(3000);
