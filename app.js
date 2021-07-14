@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const { errors } = require('celebrate');
+const cors = require('cors');
 
 const {
   createUser,
@@ -13,7 +14,23 @@ const {
 const auth = require('./middlewares/auth');
 const validation = require('./middlewares/validation');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
-const cors = require('./middlewares/cors');
+// const cors = require('./middlewares/cors');
+
+const allowedCors = [
+  'https://mesto-front.nomoredomains.rocks',
+  'http://mesto-front.nomoredomains.rocks',
+  'http://localhost:3000',
+];
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (allowedCors.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  optionsSuccessStatus: 200,
+};
 
 const app = express();
 
@@ -29,7 +46,9 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
 
 app.use(requestLogger); // подключаем логгер запросов
 
-app.use(cors);
+// app.use(cors);
+app.use(cors(corsOptions));
+app.options('*', cors());
 
 app.post('/signin',
   validation('body', ['email', 'password']),
