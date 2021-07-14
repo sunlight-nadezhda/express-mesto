@@ -186,27 +186,29 @@ module.exports.login = async (req, res, next) => {
   let user;
   try {
     user = await User.findUserByCredentials(email, password);
+
+    // аутентификация успешна
+    const token = jwt.sign(
+      { _id: user._id },
+      NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
+      { expiresIn: '7d' },
+    );
+
+    try {
+      res
+        .cookie('jwt', token, {
+          maxAge: 3600000,
+          httpOnly: true,
+        })
+        .send({ token });
+    } catch (err) {
+      return next(err);
+    }
   } catch (err) {
-    next(err);
+    return next(err);
   }
 
-  // аутентификация успешна
-  const token = jwt.sign(
-    { _id: user._id },
-    NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
-    { expiresIn: '7d' },
-  );
-
-  try {
-    res
-      .cookie('jwt', token, {
-        maxAge: 3600000,
-        httpOnly: true,
-      })
-      .end();
-  } catch (err) {
-    next(err);
-  }
+  return undefined;
 };
 
 // Получает информацию об авторизованном пользователе

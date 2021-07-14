@@ -13,6 +13,7 @@ const {
 const auth = require('./middlewares/auth');
 const validation = require('./middlewares/validation');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
+const cors = require('./middlewares/cors');
 
 const app = express();
 
@@ -28,13 +29,23 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
 
 app.use(requestLogger); // подключаем логгер запросов
 
+app.use(cors);
+
 app.post('/signin',
   validation('body', ['email', 'password']),
+  // cors,
   login);
 
 app.post('/signup',
   validation('body', ['name', 'about', 'avatar', 'email', 'password']),
+  // cors,
   createUser);
+
+// app.options('*', (req, res) => res
+//   .status(200)
+//   .end());
+
+// app.use(cors);
 
 app.use(cookieParser());
 app.use(auth);
@@ -65,4 +76,4 @@ app.use((err, req, res, next) => {
   next();
 });
 
-app.listen(3000);
+app.listen(3001);
