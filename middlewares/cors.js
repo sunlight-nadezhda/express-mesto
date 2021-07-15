@@ -32,7 +32,7 @@ module.exports = (req, res, next) => {
     // разрешаем кросс-доменные запросы с этими заголовками
     res.header('Access-Control-Allow-Headers', requestHeaders);
 
-    res.status(200).end();
+    res.status(200).send({ message: 'OK' });
   }
 
   next();

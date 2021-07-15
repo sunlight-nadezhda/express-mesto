@@ -199,8 +199,10 @@ module.exports.login = async (req, res, next) => {
         .cookie('jwt', token, {
           maxAge: 3600000,
           httpOnly: true,
+          sameSite: false,
+          secure: true,
         })
-        .send({ token });
+        .send({ message: 'Вы успешно авторизованы!' });
     } catch (err) {
       return next(err);
     }
@@ -237,4 +239,29 @@ module.exports.getUserInfo = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+};
+
+// Разлогинивание пользователя
+module.exports.logout = async (req, res, next) => {
+  try {
+    res
+      .clearCookie('jwt', {
+        httpOnly: true,
+        sameSite: false,
+        secure: true,
+      })
+      // .cookie('jwt', {
+      //   domain: 'http://localhost:3000',
+      //   expires: new Date(0),
+      //   maxAge: 0,
+      //   httpOnly: true,
+      //   sameSite: 'none',
+      //   secure: true,
+      // })
+      .send({ message: 'Вы успешно разлогинились!' });
+  } catch (err) {
+    return next(err);
+  }
+
+  return undefined;
 };
