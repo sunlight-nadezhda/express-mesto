@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const NotFoundError = require('../errors/not-found-err');
 const NoValidateError = require('../errors/no-validate-err');
+const IsAlreadyTakenError = require('../errors/is-already-taken-err');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
@@ -87,8 +88,7 @@ module.exports.createUser = async (req, res, next) => {
         throw new NoValidateError('Проверьте введенные данные');
       }
       if (err.name === 'MongoError' && err.code === 11000) {
-        const ERROR_CODE = 409;
-        return res.status(ERROR_CODE).send({ message: 'Введенный email уже занят' });
+        throw new IsAlreadyTakenError('Введенный email уже занят');
       }
       throw err;
     }

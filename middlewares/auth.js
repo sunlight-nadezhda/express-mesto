@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 const WrongAuthError = require('../errors/wrong-auth-err');
+const NotEnoughRightsError = require('../errors/not-enough-rights-err');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
@@ -12,13 +13,7 @@ module.exports = (req, res, next) => {
   if (req.cookies.jwt) {
     token = req.cookies.jwt;
   } else if (!authorization) {
-    try {
-      res
-        .status(403)
-        .send({ message: 'Не достаточно прав' });
-    } catch (err) {
-      next(err);
-    }
+    throw new NotEnoughRightsError('Не достаточно прав');
   } else if (!authorization.startsWith('Bearer ')) {
     throw new WrongAuthError('Необходима авторизация');
   } else {
