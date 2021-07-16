@@ -1,4 +1,14 @@
 const { celebrate, Joi } = require('celebrate');
+const validator = require('validator');
+
+const method = (value) => {
+  const result = validator.isURL(value);
+  if (result) {
+    return value;
+  } else {
+    throw new Error('URL validation err');
+  }
+};
 
 module.exports = (element, items) => {
   const elementObject = {};
@@ -11,7 +21,7 @@ module.exports = (element, items) => {
         keysObject[item] = Joi.string().min(2).max(30);
         break;
       case 'avatar':
-        keysObject[item] = Joi.string().uri().pattern(/^ht{2}ps?:(\/){2}(w{3}.)?[\w\-.~:\/?#[\]@!$&'()*+,;=]+/);
+        keysObject[item] = Joi.string().required().custom(method);
         break;
       case 'email':
         keysObject[item] = Joi.string().required().email();
@@ -20,7 +30,7 @@ module.exports = (element, items) => {
         keysObject[item] = Joi.string().required().min(8);
         break;
       case 'link':
-        keysObject[item] = Joi.string().uri();
+        keysObject[item] = Joi.string().required().custom(method);
         break;
       case 'owner':
         keysObject[item] = Joi.link().ref('#user');
@@ -32,7 +42,7 @@ module.exports = (element, items) => {
         keysObject[item] = Joi.date();
         break;
       default:
-        keysObject[item] = Joi.string().alphanum().length(24);
+        keysObject[item] = Joi.string().hex().length(24);
         break;
     }
   });

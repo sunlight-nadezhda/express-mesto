@@ -1,6 +1,7 @@
 const Card = require('../models/card');
 const NotFoundError = require('../errors/not-found-err');
 const NoValidateError = require('../errors/no-validate-err');
+const NotEnoughRightsError = require('../errors/not-enough-rights-err');
 
 // Возвращает все карточки
 module.exports.getCards = async (req, res, next) => {
@@ -62,12 +63,7 @@ module.exports.deleteCardById = async (req, res, next) => {
       throw new NotFoundError('Запрашиваемая карточка не найдена');
     }
     if (!card.owner._id.equals(userId)) {
-      const ERROR_CODE = 403;
-      try {
-        res.status(ERROR_CODE).send({ message: 'Не достаточно прав' });
-      } catch (err) {
-        next(err);
-      }
+      throw new NotEnoughRightsError('Не достаточно прав');
     }
 
     let deletedCard;

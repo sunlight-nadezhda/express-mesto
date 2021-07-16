@@ -5,6 +5,8 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const { errors } = require('celebrate');
 // const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const {
   createUser,
@@ -12,27 +14,25 @@ const {
   logout,
 } = require('./controllers/users');
 
+const NotFoundError = require('./errors/not-found-err');
+
 const auth = require('./middlewares/auth');
 const validation = require('./middlewares/validation');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 const cors = require('./middlewares/cors');
+const handlingErrors = require('./middlewares/handling-errors');
 
-// const allowedCors = [
-//   'https://mesto-front.nomoredomains.rocks',
-//   'http://mesto-front.nomoredomains.rocks',
-//   'http://localhost:3000',
-// ];
-// const corsOptions = {
-//   origin: (origin, callback) => {
-//     if (allowedCors.indexOf(origin) !== -1 || !origin) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   optionsSuccessStatus: 200,
-//   credentials: true,
-// };
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+
+const createAccountLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message:
+    'Очень много аккаунтов создано с этого IP, попробуйте снова через час',
+});
 
 const app = express();
 
@@ -48,30 +48,22 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
 
 app.use(requestLogger); // подключаем логгер запросов
 
+app.use(limiter);
+app.use(helmet());
 app.use(cors);
-// app.use(cors(corsOptions));
-// app.options('*', cors());
 
 app.post('/signin',
   validation('body', ['email', 'password']),
-  // cors,
   login);
 
 app.post('/signup',
+  createAccountLimiter,
   validation('body', ['name', 'about', 'avatar', 'email', 'password']),
-  // cors,
   createUser);
 
 app.get('/signout',
   validation('body', ['email', 'password']),
-  // cors,
   logout);
-
-// app.options('*', (req, res) => res
-//   .status(200)
-//   .end());
-
-// app.use(cors);
 
 app.use(cookieParser());
 app.use(auth);
@@ -79,27 +71,15 @@ app.use(auth);
 app.use('/users', require('./routes/users'));
 app.use('/cards', require('./routes/cards'));
 
-app.all('*', (req, res) => res
-  .status(404)
-  .send({ message: 'Запрашиваемый ресурс не найден' }));
+app.all('*', (req, res) => {
+  throw new NotFoundError('Запрашиваемый ресурс не найден');
+});
 
 app.use(errorLogger); // подключаем логгер ошибок
 
 app.use(errors()); // обработчик ошибок celebrate
 
 // здесь обрабатываем все ошибки
-app.use((err, req, res, next) => {
-  const { statusCode = 500, message } = err;
+app.use(handlingErrors);
 
-  res
-    .status(statusCode)
-    .send({
-      message: statusCode === 500
-        ? 'На сервере произошла ошибка'
-        : message,
-    });
-
-  next();
-});
-
-app.listen(3001);
+app.listen(3000);
