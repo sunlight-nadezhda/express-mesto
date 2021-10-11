@@ -250,14 +250,6 @@ module.exports.logout = async (req, res, next) => {
         sameSite: false,
         secure: true,
       })
-      // .cookie('jwt', {
-      //   domain: 'http://localhost:3000',
-      //   expires: new Date(0),
-      //   maxAge: 0,
-      //   httpOnly: true,
-      //   sameSite: 'none',
-      //   secure: true,
-      // })
       .send({ message: 'Вы успешно разлогинились!' });
   } catch (err) {
     return next(err);
